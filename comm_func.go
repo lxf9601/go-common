@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+
 	"strconv"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/dgrijalva/jwt-go"
 )
 
 func Dump(o interface{}) {
@@ -97,3 +99,20 @@ func IpToAton(ip string) uint {
 
 	return sum
 }
+
+// 解析
+func JWTParse(tokenStr string, secret string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+	if token != nil {
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			return claims, err
+		} else {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("无效的token")
+	}
+}
+
