@@ -19,7 +19,7 @@ type MicroSrvApiOptions struct {
 	Url string // 服务接口地址
 }
 
-func NewMicroSrvApi(options MicroSrvApiOptions) *MicroSrvApi {
+func NewMicroSrvApi(options *MicroSrvApiOptions) *MicroSrvApi {
 	api := &MicroSrvApi{client: fasthttp.Client{}, Url: options.Url}
 	return api
 }
