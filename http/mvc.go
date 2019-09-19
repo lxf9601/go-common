@@ -146,7 +146,7 @@ func (this *Router) Get(url string, controller *interface{}, handler string) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodGet}
 }
 
-func (this *Router) GetAuth(url string, controller *interface{}, handler string, auth *Auth) {
+func (this *Router) GetAuth(url string, controller *interface{}, handler string, auth Auth) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodGet, auth: auth}
 }
 
@@ -154,7 +154,7 @@ func (this *Router) Post(url string, controller *interface{}, handler string) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost}
 }
 
-func (this *Router) PostAuth(url string, controller *interface{}, handler string, auth *Auth) {
+func (this *Router) PostAuth(url string, controller *interface{}, handler string, auth Auth) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost, auth: auth}
 }
 
