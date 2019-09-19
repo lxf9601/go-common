@@ -2,6 +2,7 @@ package logc
 
 import (
 	"os"
+
 	"github.com/gogap/logrus"
 )
 

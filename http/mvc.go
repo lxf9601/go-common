@@ -228,7 +228,6 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 						t, err = t.ParseGlob(path.Join(appPath+"views/common", "*.tpl"))
 						t, err = t.ParseGlob(path.Join(appPath+"views/", "*.tpl"))
 						err = t.ExecuteTemplate(ctx.Response.BodyWriter(), view+".tpl", vl[1].Interface())
-						comm.Dump(err)
 					}
 				}
 			}

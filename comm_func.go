@@ -2,11 +2,11 @@ package comm
 
 import (
 	"bytes"
+	"deploy/comm"
 	"errors"
 	"os"
 	"runtime"
 	"time"
-
 
 	"strconv"
 	"strings"
@@ -14,8 +14,11 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"reflect"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jinzhu/configor"
 )
 
 func Dump(o interface{}) {
@@ -100,6 +103,29 @@ func IpToAton(ip string) uint {
 	return sum
 }
 
+// 加载配置
+func LoadConfig(config interface{}, configFile string) {
+	appPath, _ := comm.GetAppPath()
+	appPathField := reflect.ValueOf(config).Elem().FieldByName("AppPath")
+	appPathField.SetString(appPath)
+	confPath := appPath + configFile
+	exists, _ := comm.PathExists(confPath)
+	if !exists {
+		path, _ := filepath.Abs("./")
+		appPath = path + "/"
+		appPathField.SetString(appPath)
+		confPath = appPath + configFile
+		exists, _ := comm.PathExists(confPath)
+		if !exists {
+			path, _ := filepath.Abs("../")
+			appPath = path + "/"
+			appPathField.SetString(appPath)
+			confPath = appPath + configFile
+		}
+	}
+	configor.Load(&config, confPath)
+}
+
 // 解析
 func JWTParse(tokenStr string, secret string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
@@ -115,4 +141,3 @@ func JWTParse(tokenStr string, secret string) (jwt.MapClaims, error) {
 		return nil, errors.New("无效的token")
 	}
 }
-

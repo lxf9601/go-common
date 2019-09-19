@@ -14,6 +14,10 @@ func NewTSList() *TSList {
 	return &TSList{list.New(), sync.Mutex{}}
 }
 
+func (this *TSList) in()  {
+
+}
+
 func (this *TSList) PushBack(elem interface{}) {
 	this.Lock()
 	defer this.Unlock()
@@ -58,6 +62,10 @@ func (this *TSList) IsEmpty() bool {
 	defer this.Unlock()
 
 	return this.list.Len() == 0
+}
+
+func (this *TSList) GetOriginalList() *list.List{
+	return this.list
 }
 
 func (this *TSList) Front() *list.Element {

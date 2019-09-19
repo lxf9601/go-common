@@ -8,6 +8,11 @@ type MySqlConf struct {
 	ConnMaxLifetime int    // 连接生命周期
 }
 
+// pgsql配置项
+type PgSqlConf struct {
+	MySqlConf
+}
+
 // Redis配置项
 type RedisConf struct {
 	Addr      string
