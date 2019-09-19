@@ -15,8 +15,8 @@ import (
 
 	"cparrow.com/common/logc"
 
-	"github.com/valyala/fasthttp"
 	"cparrow.com/common"
+	"github.com/valyala/fasthttp"
 )
 
 const (
@@ -126,6 +126,12 @@ type RouterLocation struct {
 	Handler    string
 	Method     string
 	IsAuth     bool
+	auth       Auth
+}
+
+//interface definition
+type Auth interface {
+	executeCheck(ctx *fasthttp.RequestCtx) bool
 }
 
 func (this *Router) Init() {
@@ -140,8 +146,16 @@ func (this *Router) Get(url string, controller *interface{}, handler string) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodGet}
 }
 
+func (this *Router) GetAuth(url string, controller *interface{}, handler string, auth *Auth) {
+	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodGet, auth: auth}
+}
+
 func (this *Router) Post(url string, controller *interface{}, handler string) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost}
+}
+
+func (this *Router) PostAuth(url string, controller *interface{}, handler string, auth *Auth) {
+	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost, auth: auth}
 }
 
 func (this *Router) Any(url string, controller *interface{}, handler string) {
@@ -157,7 +171,7 @@ func ShowTime(t time.Time) string {
 }
 
 func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) {
-	return func (ctx *fasthttp.RequestCtx) {
+	return func(ctx *fasthttp.RequestCtx) {
 		defer func() {
 			if err := recover(); err != nil {
 				logc.Error(err)
@@ -184,6 +198,13 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 		if n.IsAuth {
 			if len(ctx.Request.Header.Cookie("user_name")) == 0 {
 				ctx.Redirect("/m_login", 200)
+				return
+			}
+		} else if n.auth != nil {
+			if !n.auth.executeCheck(ctx) {
+				ctx.Response.Reset()
+				ctx.SetStatusCode(401)
+				ctx.SetBodyString("401 Auth Failed")
 				return
 			}
 		}
@@ -224,7 +245,7 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 					if err == nil {
 						defer f.Close()
 						t := template.New("").Funcs(template.
-						FuncMap{"ShowTime": ShowTime})
+							FuncMap{"ShowTime": ShowTime})
 						t, err = t.ParseGlob(path.Join(appPath+"views/common", "*.tpl"))
 						t, err = t.ParseGlob(path.Join(appPath+"views/", "*.tpl"))
 						err = t.ExecuteTemplate(ctx.Response.BodyWriter(), view+".tpl", vl[1].Interface())
