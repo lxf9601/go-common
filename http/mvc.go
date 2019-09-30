@@ -30,6 +30,12 @@ type ApiResponse struct {
 	Data interface{} `json:"data"`
 }
 
+type Response struct {
+	StatusCode  int
+	Data        interface{}
+	ContentType string
+}
+
 type TplModel map[string]interface{}
 
 type Controller struct {
@@ -121,21 +127,42 @@ type Router struct {
 	routerMap map[string]*RouterLocation
 }
 
+type RouterGroup struct {
+	Interceptors []Interceptor // 拦截器
+	Url          string        // 路径
+	Router       *Router
+}
+
 type RouterLocation struct {
 	Controller *interface{}
 	Handler    string
 	Method     string
 	IsAuth     bool
-	auth       Auth
+	group      *RouterGroup
 }
 
 //interface definition
-type Auth interface {
-	executeCheck(ctx *fasthttp.RequestCtx) bool
+type Interceptor interface {
+	preHandle(controller *interface{}, ctx *HttpContext) (*Response, error)
 }
 
 func (this *Router) Init() {
 	this.routerMap = make(map[string]*RouterLocation, 100)
+}
+
+func (this *Router) Group(url string, interceptors []Interceptor, handler func(group *RouterGroup)) {
+	group := &RouterGroup{Url: url, Interceptors: interceptors, Router: this}
+	handler(group)
+}
+
+func (this *RouterGroup) Get(url string, controller *interface{}, handler string) {
+	this.Router.routerMap[this.Url+url] = &RouterLocation{Controller: controller, Handler: handler,
+		Method: http.MethodGet, group: this}
+}
+
+func (this *RouterGroup) Post(url string, controller *interface{}, handler string) {
+	this.Router.routerMap[this.Url+url] = &RouterLocation{Controller: controller, Handler: handler,
+		Method: http.MethodPost, group: this}
 }
 
 func (this *Router) Match(url string) *RouterLocation {
@@ -146,16 +173,8 @@ func (this *Router) Get(url string, controller *interface{}, handler string) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodGet}
 }
 
-func (this *Router) GetAuth(url string, controller *interface{}, handler string, auth Auth) {
-	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodGet, auth: auth}
-}
-
 func (this *Router) Post(url string, controller *interface{}, handler string) {
 	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost}
-}
-
-func (this *Router) PostAuth(url string, controller *interface{}, handler string, auth Auth) {
-	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost, auth: auth}
 }
 
 func (this *Router) Any(url string, controller *interface{}, handler string) {
@@ -195,17 +214,28 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 			ctx.Write(ctx.Path())
 			return
 		}
+		c := new(HttpContext)
+		c.RawCtx = ctx
 		if n.IsAuth {
 			if len(ctx.Request.Header.Cookie("user_name")) == 0 {
 				ctx.Redirect("/m_login", 200)
 				return
 			}
-		} else if n.auth != nil {
-			if !n.auth.executeCheck(ctx) {
-				ctx.Response.Reset()
-				ctx.SetStatusCode(401)
-				ctx.SetBodyString("401 Auth Failed")
-				return
+		}
+		if n.group != nil && n.group.Interceptors != nil {
+			for _, interceptor := range n.group.Interceptors {
+				resp, err := interceptor.preHandle(n.Controller, c)
+				if err != nil {
+					if resp == nil {
+						ctx.SetStatusCode(500)
+						ctx.Response.Reset()
+						ctx.SetBodyString(err.Error())
+					} else if resp.ContentType == CONTENT_TYPE_JSON {
+						j, _ := json.Marshal(resp.Data)
+						ctx.Write(j)
+					}
+					return
+				}
 			}
 		}
 		v := reflect.ValueOf(*n.Controller)
@@ -215,8 +245,6 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 			return
 		}
 		params := make([]reflect.Value, 1)
-		c := new(HttpContext)
-		c.RawCtx = ctx
 		params[0] = reflect.ValueOf(c)
 		vl := m.Call(params)
 		if len(vl) > 0 {

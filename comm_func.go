@@ -16,6 +16,8 @@ import (
 
 	"reflect"
 
+	"fmt"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/configor"
@@ -140,4 +142,9 @@ func JWTParse(tokenStr string, secret string) (jwt.MapClaims, error) {
 	} else {
 		return nil, errors.New("无效的token")
 	}
+}
+
+func FormatFloat32(val float32, digit int) float32 {
+	formatVal, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(digit)+"f", val), 64)
+	return float32(formatVal)
 }
