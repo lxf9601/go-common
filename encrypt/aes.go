@@ -34,7 +34,7 @@ func (a *AesCryptor) Decrypt(src []byte) (data []byte, err error) {
 		return nil, err
 	}
 	aesDecrypter := cipher.NewCBCDecrypter(aesBlockDecrypter, a.Iv)
-	aesDecrypter.CryptBlocks(decrypted, src)
+ 	aesDecrypter.CryptBlocks(decrypted, src)
 	return PKCS5Trimming(decrypted), nil
 }
 
@@ -47,6 +47,10 @@ func PKCS5Padding(cipherText []byte, blockSize int) []byte {
 
 // PKCS5Trimming 解包装
 func PKCS5Trimming(encrypt []byte) []byte {
-	padding := encrypt[len(encrypt)-1]
-	return encrypt[:len(encrypt)-int(padding)]
+	if len(encrypt) > 0 {
+		padding := encrypt[len(encrypt)-1]
+		return encrypt[:len(encrypt)-int(padding)]
+	} else {
+		return []byte{}
+	}
 }

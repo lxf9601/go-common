@@ -13,9 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"cparrow.com/common/logc"
-
 	"cparrow.com/common"
+	"cparrow.com/common/logc"
 	"github.com/valyala/fasthttp"
 )
 
@@ -58,6 +57,26 @@ func (this *Controller) Fail(ret int, msg string) *ApiResponse {
 type HttpContext struct {
 	RawCtx      *fasthttp.RequestCtx
 	contentType string
+}
+
+func (this *HttpContext) BindForm(objValue reflect.Value, tag string) {
+	objType := objValue.Type()
+	for i := 0; i < objType.Elem().NumField(); i++ {
+		field := objType.Elem().Field(i)
+		name := field.Type.Name()
+		f := objValue.Elem().Field(i)
+		if name == "string" {
+			f.SetString(this.FormString(field.Tag.Get(tag)))
+		} else if strings.Index(name, "uint") == 0 {
+			f.SetUint(this.FormUint64(field.Tag.Get(tag)))
+		} else if strings.Index(name, "int") == 0 {
+			f.SetInt(this.FormInt64(field.Tag.Get(tag)))
+		} else if strings.Index(name, "float") == 0 {
+			f.SetFloat(this.FormFloat64(field.Tag.Get(tag)))
+		} else if name == "Position" {
+			f.SetString(this.FormString(field.Tag.Get(tag)))
+		}
+	}
 }
 
 func (this *HttpContext) GetContentType() string {
@@ -105,6 +124,24 @@ func (this *HttpContext) FormBool(key string) bool {
 	}
 }
 
+func (this *HttpContext) FormUint32(key string) uint32 {
+	i, err := strconv.ParseUint(string(this.RawCtx.FormValue(key)), 10, 32)
+	if err != nil {
+		return uint32(0)
+	} else {
+		return uint32(i)
+	}
+}
+
+func (this *HttpContext) FormUint64(key string) uint64 {
+	i, err := strconv.ParseUint(string(this.RawCtx.FormValue(key)), 10, 64)
+	if err != nil {
+		return uint64(0)
+	} else {
+		return i
+	}
+}
+
 func (this *HttpContext) FormUint(key string) uint {
 	i, err := strconv.ParseUint(string(this.RawCtx.FormValue(key)), 10, 32)
 	if err != nil {
@@ -114,8 +151,26 @@ func (this *HttpContext) FormUint(key string) uint {
 	}
 }
 
+func (this *HttpContext) FormInt64(key string) int64 {
+	i, err := strconv.ParseInt(string(this.RawCtx.FormValue(key)), 10, 64)
+	if err != nil {
+		return 0
+	} else {
+		return i
+	}
+}
+
 func (this *HttpContext) FormInt(key string) int {
 	i, err := strconv.Atoi(string(this.RawCtx.FormValue(key)))
+	if err != nil {
+		return 0
+	} else {
+		return i
+	}
+}
+
+func (this *HttpContext) FormFloat64(key string) float64 {
+	i, err := strconv.ParseFloat(string(this.RawCtx.FormValue(key)), 64)
 	if err != nil {
 		return 0
 	} else {
@@ -143,7 +198,8 @@ type RouterLocation struct {
 
 //interface definition
 type Interceptor interface {
-	preHandle(controller *interface{}, ctx *HttpContext) (*Response, error)
+	BeforeHandle(controller *interface{}, ctx *HttpContext) (*Response, error)
+	AfterHandle(controller *interface{}, ctx *HttpContext, resp interface{})
 }
 
 func (this *Router) Init() {
@@ -208,10 +264,41 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 			fs.PathRewrite = fasthttp.NewPathSlashesStripper(1)
 			fs.NewRequestHandler()(ctx)
 			return
+		} else if string(ctx.Path()) == "/" || bytes.HasSuffix(ctx.Path(), []byte(".js")) ||
+			bytes.HasSuffix(ctx.Path(), []byte(".png")) ||
+			bytes.HasSuffix(ctx.Path(), []byte(".html")) ||
+			bytes.HasSuffix(ctx.Path(), []byte(".css")) ||
+			bytes.HasPrefix(ctx.Path(), []byte("/fonts")) {
+			fs := &fasthttp.FS{
+				Root:               appPath + "views",
+				IndexNames:         []string{"index.html"},
+				GenerateIndexPages: true,
+				Compress:           true,
+				AcceptByteRange:    true,
+			}
+			fs.PathRewrite = fasthttp.NewPathSlashesStripper(0)
+			fs.NewRequestHandler()(ctx)
+			return
 		}
 		n := router.Match(string(ctx.Path()))
 		if n == nil {
-			ctx.Write(ctx.Path())
+			view := string(ctx.Path())[1:]
+			tplPath := path.Join(appPath+"views", view+".tpl")
+			f, err := os.Open(tplPath)
+			if err == nil {
+				defer f.Close()
+				ctx.SetContentType(CONTENT_TYPE_HTML)
+				t := template.New("").Funcs(template.
+					FuncMap{"ShowTime": ShowTime})
+				t, err = t.ParseGlob(path.Join(appPath+"views/common", "*.tpl"))
+				t, err = t.ParseFiles(tplPath)
+				err = t.ExecuteTemplate(ctx.Response.BodyWriter(), view+".tpl", nil)
+				if err != nil {
+					ctx.Write(ctx.Path())
+				}
+			} else {
+				ctx.Write(ctx.Path())
+			}
 			return
 		}
 		c := new(HttpContext)
@@ -224,7 +311,7 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 		}
 		if n.group != nil && n.group.Interceptors != nil {
 			for _, interceptor := range n.group.Interceptors {
-				resp, err := interceptor.preHandle(n.Controller, c)
+				resp, err := interceptor.BeforeHandle(n.Controller, c)
 				if err != nil {
 					if resp == nil {
 						ctx.SetStatusCode(500)
@@ -238,6 +325,9 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 				}
 			}
 		}
+		if strings.ToLower(string(ctx.Method())) == "options" {
+			return
+		}
 		v := reflect.ValueOf(*n.Controller)
 		m := v.MethodByName(n.Handler)
 		if m.IsNil() {
@@ -247,11 +337,18 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 		params := make([]reflect.Value, 1)
 		params[0] = reflect.ValueOf(c)
 		vl := m.Call(params)
+
+
 		if len(vl) > 0 {
 			if vl[0].Type().String() != "string" {
 				if c.GetContentType() != CONTENT_TYPE_HTML {
 					c.SetContentType(CONTENT_TYPE_JSON)
 					j, _ := json.Marshal(vl[0].Interface())
+					if n.group != nil && n.group.Interceptors != nil {
+						for _, interceptor := range n.group.Interceptors {
+							interceptor.AfterHandle(n.Controller, c, j)
+						}
+					}
 					if len(j) > 1024 {
 						ctx.Response.Header.Add("Content-Encoding", "gzip")
 						w := gzip.NewWriter(ctx.Response.BodyWriter())
@@ -274,8 +371,9 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 						defer f.Close()
 						t := template.New("").Funcs(template.
 							FuncMap{"ShowTime": ShowTime})
+						t.ParseFiles()
 						t, err = t.ParseGlob(path.Join(appPath+"views/common", "*.tpl"))
-						t, err = t.ParseGlob(path.Join(appPath+"views/", "*.tpl"))
+						t, err = t.ParseFiles(path.Join(appPath+"views", view+".tpl"))
 						err = t.ExecuteTemplate(ctx.Response.BodyWriter(), view+".tpl", vl[1].Interface())
 					}
 				}

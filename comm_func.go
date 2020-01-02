@@ -148,3 +148,8 @@ func FormatFloat32(val float32, digit int) float32 {
 	formatVal, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(digit)+"f", val), 64)
 	return float32(formatVal)
 }
+
+func FormatFloat64(val float64, digit int) float64 {
+	formatVal, _ := strconv.ParseFloat(fmt.Sprintf("%."+strconv.Itoa(digit)+"f", val), 64)
+	return formatVal
+}
