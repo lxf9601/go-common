@@ -40,7 +40,7 @@ func PanicTrace(kb int) []byte {
 	e := []byte("\ngoroutine ")
 	line := []byte("\n")
 	stack := make([]byte, kb<<10) //4KB
-	length := runtime.St协成通讯协议ack(stack, true)
+	length := runtime.Stack(stack, true)
 	start := bytes.Index(stack, s)
 	stack = stack[start:length]
 	start = bytes.Index(stack, line) + 1
