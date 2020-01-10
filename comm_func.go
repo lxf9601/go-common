@@ -33,13 +33,14 @@ func NowTime() string {
 
 const TIME_LAYOUT = "2006-01-02 15:04:05"
 const DATE_LAYOUT = "2006-01-02"
+const YEAR_LAYOUT = "2006"
 
 func PanicTrace(kb int) []byte {
 	s := []byte("/src/runtime/panic.go")
 	e := []byte("\ngoroutine ")
 	line := []byte("\n")
 	stack := make([]byte, kb<<10) //4KB
-	length := runtime.Stack(stack, true)
+	length := runtime.St协成通讯协议ack(stack, true)
 	start := bytes.Index(stack, s)
 	stack = stack[start:length]
 	start = bytes.Index(stack, line) + 1
