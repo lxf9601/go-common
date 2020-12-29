@@ -20,6 +20,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dgrijalva/jwt-go"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/configor"
 )
 
