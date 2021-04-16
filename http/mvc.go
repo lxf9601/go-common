@@ -338,7 +338,6 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 		params[0] = reflect.ValueOf(c)
 		vl := m.Call(params)
 
-
 		if len(vl) > 0 {
 			if vl[0].Type().String() != "string" {
 				if c.GetContentType() != CONTENT_TYPE_HTML {
@@ -349,7 +348,8 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 							interceptor.AfterHandle(n.Controller, c, j)
 						}
 					}
-					if len(j) > 1024 {
+					encoding := string(ctx.Request.Header.Peek("Accept-Encoding"))
+					if len(j) > 1024 && strings.Index(encoding, "gzip") != -1 {
 						ctx.Response.Header.Add("Content-Encoding", "gzip")
 						w := gzip.NewWriter(ctx.Response.BodyWriter())
 						defer w.Close()
