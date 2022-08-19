@@ -13,8 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"cparrow.com/common"
-	"cparrow.com/common/logc"
+	comm "github.com/lxf9601/go-common"
+	"github.com/lxf9601/go-common/logc"
+
 	"github.com/valyala/fasthttp"
 )
 
