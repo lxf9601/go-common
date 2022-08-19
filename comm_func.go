@@ -2,7 +2,6 @@ package comm
 
 import (
 	"bytes"
-	"deploy/comm"
 	"errors"
 	"os"
 	"runtime"
@@ -109,17 +108,17 @@ func IpToAton(ip string) uint {
 
 // 加载配置
 func LoadConfig(config interface{}, configFile string) {
-	appPath, _ := comm.GetAppPath()
+	appPath, _ := GetAppPath()
 	appPathField := reflect.ValueOf(config).Elem().FieldByName("AppPath")
 	appPathField.SetString(appPath)
 	confPath := appPath + configFile
-	exists, _ := comm.PathExists(confPath)
+	exists, _ := PathExists(confPath)
 	if !exists {
 		path, _ := filepath.Abs("./")
 		appPath = path + "/"
 		appPathField.SetString(appPath)
 		confPath = appPath + configFile
-		exists, _ := comm.PathExists(confPath)
+		exists, _ := PathExists(confPath)
 		if !exists {
 			path, _ := filepath.Abs("../")
 			appPath = path + "/"
