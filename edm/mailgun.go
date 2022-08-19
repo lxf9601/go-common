@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"cparrow.com/common/logc"
+	"github.com/lxf9601/go-common/logc"
 	"github.com/valyala/fasthttp"
 )
 
