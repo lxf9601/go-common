@@ -2,16 +2,15 @@ package amqp
 
 import (
 	"errors"
-	"log"
-	"os"
 	"time"
+
+	"github.com/lxf9601/go-common/logc"
 
 	"github.com/streadway/amqp"
 )
 
 type Session struct {
 	name            string
-	logger          *log.Logger
 	connection      *amqp.Connection
 	channel         *amqp.Channel
 	done            chan bool
@@ -42,9 +41,8 @@ var (
 // attempts to connect to the server.
 func New(name string, addr string) *Session {
 	session := Session{
-		logger: log.New(os.Stdout, "", log.LstdFlags),
-		name:   name,
-		done:   make(chan bool),
+		name: name,
+		done: make(chan bool),
 	}
 	go session.handleReconnect(addr)
 	return &session
@@ -55,12 +53,12 @@ func New(name string, addr string) *Session {
 func (session *Session) handleReconnect(addr string) {
 	for {
 		session.isReady = false
-		log.Println("Attempting to connect")
+		logc.Info("Amqp Attempting to connect")
 
 		conn, err := session.connect(addr)
 
 		if err != nil {
-			log.Println("Failed to connect. Retrying...")
+			logc.Errorf("Amqp Failed to connect. Retrying... %s", err)
 
 			select {
 			case <-session.done:
@@ -78,14 +76,17 @@ func (session *Session) handleReconnect(addr string) {
 
 // connect will create a new AMQP connection
 func (session *Session) connect(addr string) (*amqp.Connection, error) {
-	conn, err := amqp.Dial(addr)
+	conn, err := amqp.DialConfig(addr, amqp.Config{
+		Heartbeat: 30,
+		Locale:    "en_US",
+	})
 
 	if err != nil {
 		return nil, err
 	}
 
 	session.changeConnection(conn)
-	log.Println("Connected!")
+	logc.Info("Amqp Connected!")
 	return conn, nil
 }
 
@@ -98,7 +99,7 @@ func (session *Session) handleReInit(conn *amqp.Connection) bool {
 		err := session.init(conn)
 
 		if err != nil {
-			log.Println("Failed to initialize channel. Retrying...")
+			logc.Errorf("Amqp Failed to initialize channel. Retrying... %s", err)
 
 			select {
 			case <-session.done:
@@ -112,10 +113,10 @@ func (session *Session) handleReInit(conn *amqp.Connection) bool {
 		case <-session.done:
 			return true
 		case <-session.notifyConnClose:
-			log.Println("Connection closed. Reconnecting...")
+			logc.Info("Amqp Connection closed. Reconnecting...")
 			return false
 		case <-session.notifyChanClose:
-			log.Println("Channel closed. Re-running init...")
+			logc.Info("Amqp Channel closed. Re-running init...")
 		}
 	}
 }
@@ -148,7 +149,7 @@ func (session *Session) init(conn *amqp.Connection) error {
 
 	session.changeChannel(ch)
 	session.isReady = true
-	log.Println("Setup!")
+	logc.Info("Amap Setup!")
 
 	return nil
 }
@@ -176,14 +177,14 @@ func (session *Session) changeChannel(channel *amqp.Channel) {
 // it continuously re-sends messages until a confirm is received.
 // This will block until the server sends a confirm. Errors are
 // only returned if the push action itself fails, see UnsafePush.
-func (session *Session) Push(data []byte) error {
+func (session *Session) Push(key string, data []byte) error {
 	if !session.isReady {
 		return errors.New("failed to push push: not connected")
 	}
 	for {
-		err := session.UnsafePush(data)
+		err := session.UnsafePush(key, data)
 		if err != nil {
-			session.logger.Println("Push failed. Retrying...")
+			logc.Errorf("Amqp Push failed. Retrying... %s", err)
 			select {
 			case <-session.done:
 				return errShutdown
@@ -194,12 +195,12 @@ func (session *Session) Push(data []byte) error {
 		select {
 		case confirm := <-session.notifyConfirm:
 			if confirm.Ack {
-				session.logger.Println("Push confirmed!")
+				logc.Info("Amqp Push confirmed!")
 				return nil
 			}
 		case <-time.After(resendDelay):
 		}
-		session.logger.Println("Push didn't confirm. Retrying...")
+		logc.Info("Amqp Push didn't confirm. Retrying...")
 	}
 }
 
@@ -207,15 +208,15 @@ func (session *Session) Push(data []byte) error {
 // confirmation. It returns an error if it fails to connect.
 // No guarantees are provided for whether the server will
 // recieve the message.
-func (session *Session) UnsafePush(data []byte) error {
+func (session *Session) UnsafePush(key string, data []byte) error {
 	if !session.isReady {
 		return errNotConnected
 	}
 	return session.channel.Publish(
-		"",           // Exchange
-		session.name, // Routing key
-		false,        // Mandatory
-		false,        // Immediate
+		"",    // Exchange
+		key,   // Routing key
+		false, // Mandatory
+		false, // Immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        data,
@@ -242,18 +243,42 @@ func (session *Session) Stream() (<-chan amqp.Delivery, error) {
 	)
 }
 
+// session is ready
+func (session *Session) IsReady() bool {
+	return session.isReady
+}
+
+// session get connection
+func (session *Session) GetConnection() *amqp.Connection {
+	return session.connection
+}
+
+// get channel
+func (session *Session) GetChannel() *amqp.Channel {
+	return session.channel
+}
+
+// new session
+func (session *Session) New(name string) *Session {
+	newSession := &Session{
+		name: name,
+		done: make(chan bool),
+	}
+	newSession.connection = session.connection
+	newSession.notifyConnClose = make(chan *amqp.Error)
+	newSession.connection.NotifyClose(session.notifyConnClose)
+	newSession.handleReInit(session.connection)
+	return newSession
+}
+
 // Close will cleanly shutdown the channel and connection.
 func (session *Session) Close() error {
 	if !session.isReady {
 		return errAlreadyClosed
 	}
-	err := session.channel.Close()
-	if err != nil {
-		return err
-	}
-	err = session.connection.Close()
-	if err != nil {
-		return err
+	session.channel.Close()
+	if !session.connection.IsClosed() {
+		session.connection.Close()
 	}
 	close(session.done)
 	session.isReady = false
