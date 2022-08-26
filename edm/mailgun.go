@@ -24,6 +24,7 @@ const (
 	EVENT_COMPLAINED   = 5
 	EVENT_DROPPED      = 6
 	EVENT_BOUNCED      = 7
+	EVENT_FAILED       = 8
 
 	MG_TIME_LAYOUT = "Mon, _2 Jan 2006 15:04:05 -0700 (MST)"
 
