@@ -121,7 +121,7 @@ type ClientInfo struct {
 	ClientType string // 客户端类型
 	UserAgent  string // 用户代理
 	Ip         string // IP地址
-	isBot      bool   // 机器检测
+	IsBot      bool   // 机器检测
 }
 
 type MailgunLogPageData struct {
