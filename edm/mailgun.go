@@ -132,7 +132,7 @@ type MailgunLogPageData struct {
 	First    string
 }
 
-// ListEvent 查询mailgun日志
+// ListMgEvent 查询mailgun日志
 func ListMgEvent(query *MailgunQuery, auth *Auth) (
 	*MailgunLogPageData, error) {
 	pageData := new(MailgunLogPageData)
@@ -244,9 +244,6 @@ func ListMgEvent(query *MailgunQuery, auth *Auth) (
 				if item["recipient"] != nil {
 					event.Email = item["recipient"].(string)
 				}
-				if item["url"] != nil {
-					event.Url = item["url"].(string)
-				}
 				if item["event"] == "failed" {
 					status := item["delivery-status"].(map[string]interface{})
 					if status["message"] != nil {
@@ -288,6 +285,9 @@ func ListMgEvent(query *MailgunQuery, auth *Auth) (
 
 					if item["ip"] != nil {
 						event.ClientInfo.Ip = item["ip"].(string)
+					}
+					if item["url"] != nil {
+						event.Url = item["url"].(string)
 					}
 				}
 
