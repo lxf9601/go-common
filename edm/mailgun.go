@@ -39,6 +39,7 @@ var CampEventType = map[string]int8{
 	"complained":   5, // 投诉
 	"dropped":      6, // 退信
 	"bounced":      7, // 硬反弹
+	"failed":       8, // 退信&硬反弹
 }
 
 const (
