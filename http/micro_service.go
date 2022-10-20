@@ -32,7 +32,7 @@ func (this *MicroSrvApi) Get(uri string) (*ApiResponse, error) {
 	defer fasthttp.ReleaseRequest(req)
 	defer fasthttp.ReleaseResponse(rep)
 	req.Header.SetMethodBytes([]byte("GET"))
-	reqUri := this.Url + "/" + uri
+	reqUri := this.Url + uri
 	req.Header.SetRequestURI(reqUri)
 	err := this.client.DoTimeout(req, rep, 60*time.Second)
 	if err != nil {
