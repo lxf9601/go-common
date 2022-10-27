@@ -20,3 +20,20 @@ type RedisConf struct {
 	Db        int
 	KeyPrefix string
 }
+
+// mongo
+type MongoConf struct {
+	Url    string // 连接字符串
+	DbName string // 连接字符串
+}
+
+// 阿里云配置
+type AliyunOssConf struct {
+	Endpoint        string
+	AccessKeyID     string
+	AccessKeySecret string
+	KeyPrefix       string
+	Bucket          string
+	DomainInternal  string
+	DomainPub1      string
+}
