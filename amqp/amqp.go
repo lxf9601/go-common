@@ -267,7 +267,7 @@ func (session *Session) New(name string) *Session {
 	newSession.connection = session.connection
 	newSession.notifyConnClose = make(chan *amqp.Error)
 	newSession.connection.NotifyClose(session.notifyConnClose)
-	newSession.handleReInit(session.connection)
+	go newSession.handleReInit(session.connection)
 	return newSession
 }
 
