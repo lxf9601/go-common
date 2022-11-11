@@ -238,7 +238,7 @@ func (session *Session) Stream() (<-chan amqp.Delivery, error) {
 		false, // Auto-Ack
 		false, // Exclusive
 		false, // No-local
-		false, // No-Wait
+		true,  // No-Wait
 		nil,   // Args
 	)
 }
