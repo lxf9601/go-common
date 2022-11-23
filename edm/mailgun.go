@@ -99,19 +99,20 @@ type MailgunQuery struct {
 }
 
 type Event struct {
-	SendTime    time.Time   // 发送时间
-	SyncId      string      // 同步ID
-	EventType   int8        // 事件类型
-	DataTime    time.Time   // 数据时间
-	Email       string      // Email地址
-	ToName      string      // 收件人名字
-	Desc        string      // 错误的描述
-	Url         string      // 点击的链接
-	ClientInfo  *ClientInfo // 客户端信息
-	MxHost      string      // 邮件服务器mx主机
-	UserId      uint        // 用户ID
-	CampId      uint        // 活动ID
-	BouncedType int8        // 0 非反弹 1 硬反弹 2 延时硬反弹
+	SendTime     time.Time   // 发送时间
+	SyncId       string      // 同步ID
+	EventType    int8        // 事件类型
+	DataTime     time.Time   // 数据时间
+	Email        string      // Email地址
+	ToName       string      // 收件人名字
+	Desc         string      // 错误的描述
+	Url          string      // 点击的链接
+	ClientInfo   *ClientInfo // 客户端信息
+	MxHost       string      // 邮件服务器mx主机
+	BelongUserId uint        // 主账号ID
+	UserId       uint        // 用户ID
+	CampId       uint        // 活动ID
+	BouncedType  int8        // 0 非反弹 1 硬反弹 2 延时硬反弹
 }
 
 type ClientInfo struct {
