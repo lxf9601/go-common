@@ -44,9 +44,10 @@ var CampEventType = map[string]int8{
 }
 
 const (
-	TAGS_USER      = "user"
-	TAGS_CAMP      = "camp"
-	TAGS_SEND_TIME = "send"
+	TAGS_BELONG_USER = "belong_user"
+	TAGS_USER        = "user"
+	TAGS_CAMP        = "camp"
+	TAGS_SEND_TIME   = "send"
 )
 
 // Mailgun发送任务
@@ -220,6 +221,8 @@ func ListMgEvent(query *MailgunQuery, auth *Auth) (
 				if len(variables) > 0 {
 					campId, _ := strconv.ParseUint(variables["camp_id"].(string), 10, 32)
 					event.CampId = uint(campId)
+					belongUserId, _ := strconv.ParseUint(variables["belong_user_id"].(string), 10, 32)
+					event.BelongUserId = uint(belongUserId)
 					userId, _ := strconv.ParseUint(variables["user_id"].(string), 10, 32)
 					event.UserId = uint(userId)
 					sendTime, _ := strconv.ParseUint(variables["send_time"].(string), 10, 32)
@@ -232,6 +235,9 @@ func ListMgEvent(query *MailgunQuery, auth *Auth) (
 						if tag[0:4] == TAGS_CAMP {
 							campId, _ := strconv.ParseUint(tag[5:], 10, 32)
 							event.CampId = uint(campId)
+						} else if tag[0:4] == TAGS_BELONG_USER {
+							belongUserId, _ := strconv.ParseUint(tag[5:], 10, 32)
+							event.BelongUserId = uint(belongUserId)
 						} else if tag[0:4] == TAGS_USER {
 							userId, _ := strconv.ParseUint(tag[5:], 10, 32)
 							event.UserId = uint(userId)
