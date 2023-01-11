@@ -52,16 +52,17 @@ const (
 
 // Mailgun发送任务
 type MailRequest struct {
-	FormName    string        // 发件人名称
-	FormAddress string        // 发件人地址
-	Subject     string        // 邮件主题
-	TextHtml    string        // 邮件内容
-	TextPlain   string        // 邮件文本
-	IsTracking  bool          // 是否启用跟踪
-	Tags        []string      // 任务标签
-	Variables   MailVariables // 任务变量
-	Headers     MailHeaders   // 邮件头参数
-	ToList      []*MailgunTo  // 收个人列表
+	FormName     string        // 发件人名称
+	FormAddress  string        // 发件人地址
+	Subject      string        // 邮件主题
+	TextHtml     string        // 邮件内容
+	TextPlain    string        // 邮件文本
+	IsTracking   bool          // 是否启用跟踪
+	DeliveryTime int           // 送达时间
+	Tags         []string      // 任务标签
+	Variables    MailVariables // 任务变量
+	Headers      MailHeaders   // 邮件头参数
+	ToList       []*MailgunTo  // 收个人列表
 }
 
 type MailVariables map[string]string
