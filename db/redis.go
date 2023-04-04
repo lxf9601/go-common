@@ -119,6 +119,11 @@ func (redis *Redis) HMGet(key string, fields ...string) *redis.SliceCmd {
 	return redis.client.HMGet(redis.keyPrefix+key, fields...)
 }
 
+// 获取所有哈希
+func (redis *Redis) HGetAll(key string) *redis.StringStringMapCmd {
+	return redis.client.HGetAll(redis.keyPrefix + key)
+}
+
 // 哈希设置
 func (redis *Redis) HMSet(key string, fields map[string]interface{}) *redis.StatusCmd {
 	return redis.client.HMSet(redis.keyPrefix+key, fields)
