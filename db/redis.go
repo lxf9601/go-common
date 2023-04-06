@@ -68,13 +68,13 @@ func (redis *Redis) RPush(key string, message interface{}) *redis.IntCmd {
 
 // 批量设置过期时间
 func (redis *Redis) BatchExpire(keyPattern string, second int) (interface{}, error) {
-	return redis.client.Eval("return redis.call('expire',unpack(redis.call('keys',ARGV[1])), ARGV[2])",
+	return redis.client.Eval("local keys = redis.call('keys', ARGV[1]) for i=1,#keys,1 do redis.call('expire', keys[i], ARGV[2]) end return #keys",
 		[]string{}, redis.keyPrefix+keyPattern, second).Result()
 }
 
 // 批量删除
 func (redis *Redis) BatchDel(keyPattern string) (interface{}, error) {
-	return redisService.client.Eval("return redis.call('del',unpack(redis.call('keys',ARGV[1])))",
+	return redisService.client.Eval("local keys = redis.call('keys', ARGV[1]) for i=1,#keys,5000 do redis.call('del', unpack(keys, i, math.min(i+4999, #keys))) end return #keys",
 		[]string{}, redis.keyPrefix+keyPattern).Result()
 }
 
