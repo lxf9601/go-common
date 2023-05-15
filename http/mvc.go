@@ -197,7 +197,7 @@ type RouterLocation struct {
 	group      *RouterGroup
 }
 
-//interface definition
+// interface definition
 type Interceptor interface {
 	BeforeHandle(controller *interface{}, ctx *HttpContext) (*Response, error)
 	AfterHandle(controller *interface{}, ctx *HttpContext, resp interface{})
@@ -331,6 +331,10 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 		}
 		v := reflect.ValueOf(*n.Controller)
 		m := v.MethodByName(n.Handler)
+		if m.IsZero() {
+			logc.Errorf(string(ctx.Path()))
+			return
+		}
 		if m.IsNil() {
 			ctx.NotFound()
 			return
