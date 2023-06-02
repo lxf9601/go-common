@@ -331,7 +331,7 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 		}
 		v := reflect.ValueOf(*n.Controller)
 		m := v.MethodByName(n.Handler)
-		if m.IsZero() {
+		if !m.IsValid() || m.IsZero() {
 			logc.Errorf(string(ctx.Path()))
 			return
 		}
