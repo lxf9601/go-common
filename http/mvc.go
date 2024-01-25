@@ -209,6 +209,7 @@ type Interceptor interface {
 
 func (this *Router) Init() {
 	this.routerMap = make(map[string]*RouterLocation, 100)
+	this.routerRegexMap = make(map[*regexp.Regexp]*RouterLocation, 100)
 }
 
 func (this *Router) Group(url string, interceptors []Interceptor, handler func(group *RouterGroup)) {
