@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -180,7 +181,8 @@ func (this *HttpContext) FormFloat64(key string) float64 {
 }
 
 type Router struct {
-	routerMap map[string]*RouterLocation
+	routerMap      map[string]*RouterLocation
+	routerRegexMap map[*regexp.Regexp]*RouterLocation
 }
 
 type RouterGroup struct {
@@ -194,6 +196,8 @@ type RouterLocation struct {
 	Handler    string
 	Method     string
 	IsAuth     bool
+	UrlKeys    *[]string
+	UrlParams  *map[string]string
 	group      *RouterGroup
 }
 
@@ -223,7 +227,27 @@ func (this *RouterGroup) Post(url string, controller *interface{}, handler strin
 }
 
 func (this *Router) Match(url string) *RouterLocation {
-	return this.routerMap[url]
+	routerLocation := this.routerMap[url]
+	if routerLocation != nil {
+		return routerLocation
+	} else {
+		for reg, loc := range this.routerRegexMap {
+			if reg.MatchString(url) {
+				urlParams := make(map[string]string)
+				m := reg.FindAllStringSubmatch("/afsadf/1234/5678", -1)
+				for _, v1 := range m {
+					for k, v2 := range v1 {
+						if k > 0 {
+							urlParams[(*loc.UrlKeys)[k-1]] = v2
+						}
+					}
+				}
+				loc.UrlParams = &urlParams
+				return loc
+			}
+		}
+	}
+	return nil
 }
 
 func (this *Router) Get(url string, controller *interface{}, handler string) {
@@ -235,7 +259,19 @@ func (this *Router) Post(url string, controller *interface{}, handler string) {
 }
 
 func (this *Router) Any(url string, controller *interface{}, handler string) {
-	this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost}
+	reg := regexp.MustCompile("\\{([^\\}]*)\\}")
+	urlKeys := make([]string, 0)
+	if reg.MatchString(url) {
+		m := reg.FindAllStringSubmatch(url, -1)
+		for _, v1 := range m {
+			urlKeys = append(urlKeys, v1[1])
+		}
+		reg = regexp.MustCompile("\\{[^\\}]*\\}")
+		reg = regexp.MustCompile(reg.ReplaceAllString(url, "([^/]*)"))
+		this.routerRegexMap[reg] = &RouterLocation{Controller: controller, Handler: handler, UrlKeys: &urlKeys, Method: http.MethodPost}
+	} else {
+		this.routerMap[url] = &RouterLocation{Controller: controller, Handler: handler, Method: http.MethodPost}
+	}
 }
 
 func (this *Router) AnyAuth(url string, controller *interface{}, handler string) {
@@ -301,6 +337,11 @@ func HttpHandler(appPath string, router *Router) func(ctx *fasthttp.RequestCtx) 
 				ctx.Write(ctx.Path())
 			}
 			return
+		}
+		if n.UrlParams != nil {
+			for k, v := range *n.UrlParams {
+				ctx.QueryArgs().Set(k, v)
+			}
 		}
 		c := new(HttpContext)
 		c.RawCtx = ctx
