@@ -106,6 +106,7 @@ type Event struct {
 	EventType    int8        // 事件类型
 	DataTime     time.Time   // 数据时间
 	Email        string      // Email地址
+	FromAddress  string      // 发件地址
 	ToName       string      // 收件人名字
 	Desc         string      // 错误的描述
 	Url          string      // 点击的链接
