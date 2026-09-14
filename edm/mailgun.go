@@ -69,6 +69,7 @@ type MailRequest struct {
 	Variables    MailVariables // 任务变量
 	Headers      MailHeaders   // 邮件头参数
 	ToList       []*MailgunTo  // 收个人列表
+	Attachments  []*Attachment // 附件
 }
 
 type MailVariables map[string]string
