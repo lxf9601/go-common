@@ -50,6 +50,12 @@ const (
 	TAGS_SEND_TIME   = "send"
 )
 
+// Attachment
+type Attachment struct {
+	Url  string
+	Name string
+}
+
 // Mailgun发送任务
 type MailRequest struct {
 	FormName     string        // 发件人名称
